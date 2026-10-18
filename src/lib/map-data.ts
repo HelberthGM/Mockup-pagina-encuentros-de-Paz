@@ -237,5 +237,49 @@ export const mapExperiences: MapExperience[] = [
   },
 ];
 
+export type MapRegionKey = "Caribe" | "Pacífico" | "Andina" | "Orinoquía" | "Amazonía";
+
+export interface MapRegion {
+  key: MapRegionKey;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * Macro-regiones naturales de Colombia usadas como etiquetas de referencia
+ * sobre el mapa. Las coordenadas son centroides aproximados solo para
+ * posicionar el rótulo; no representan límites oficiales.
+ */
+export const mapRegions: MapRegion[] = [
+  { key: "Caribe", lat: 10.1, lng: -74.4 },
+  { key: "Pacífico", lat: 4.3, lng: -77.5 },
+  { key: "Andina", lat: 5.9, lng: -74.9 },
+  { key: "Orinoquía", lat: 4.4, lng: -71.2 },
+  { key: "Amazonía", lat: -1.4, lng: -73.3 },
+];
+
+/** Asignación de cada departamento de demostración a su región natural. */
+const DEPARTMENT_REGION: Record<string, MapRegionKey> = {
+  Cundinamarca: "Andina",
+  Antioquia: "Andina",
+  Santander: "Andina",
+  Huila: "Andina",
+  "Norte de Santander": "Andina",
+  "Valle del Cauca": "Pacífico",
+  Nariño: "Pacífico",
+  Chocó: "Pacífico",
+  Atlántico: "Caribe",
+  Bolívar: "Caribe",
+  Magdalena: "Caribe",
+  "La Guajira": "Caribe",
+  Córdoba: "Caribe",
+  Meta: "Orinoquía",
+  Caquetá: "Amazonía",
+  Amazonas: "Amazonía",
+};
+
+export const regionOf = (experience: MapExperience): MapRegionKey =>
+  DEPARTMENT_REGION[experience.department] ?? "Andina";
+
 export const mapCategoryColor = (category: (typeof categories)[number]) =>
   categories.indexOf(category);

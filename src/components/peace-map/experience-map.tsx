@@ -3,7 +3,7 @@ import { ArrowUpRight, MapPin, X } from "lucide-react";
 import bear from "@/assets/peace-bear.png";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { DEMO_MAP_NOTICE, mapCategoryColor, mapExperiences } from "@/lib/map-data";
+import { DEMO_MAP_NOTICE, mapCategoryColor, mapExperiences, regionOf } from "@/lib/map-data";
 import { ColombiaMap } from "./colombia-map";
 import "./peace-map.css";
 
@@ -14,7 +14,7 @@ export function ExperienceMap() {
 
   const selected = mapExperiences.find((experience) => experience.id === selectedId) ?? null;
   const open = mapExperiences.find((experience) => experience.id === openId) ?? null;
-  const regions = new Set(mapExperiences.map((experience) => experience.department)).size;
+  const regions = new Set(mapExperiences.map((experience) => regionOf(experience))).size;
 
   useEffect(() => {
     if (!selectedId) return;
@@ -41,7 +41,7 @@ export function ExperienceMap() {
               <strong>{mapExperiences.length}</strong> experiencias demo
             </span>
             <span>
-              <strong>{regions}</strong> regiones
+              <strong>{regions}</strong> regiones naturales
             </span>
           </div>
           <div className="pmap-bear">
@@ -98,7 +98,7 @@ export function ExperienceMap() {
               </span>
               <h3>{selected.name}</h3>
               <p className="meta">
-                <MapPin size={12} /> {selected.city}, {selected.department}
+                <MapPin size={12} /> {selected.city}, {selected.department} · {regionOf(selected)}
               </p>
               <p>{selected.summary}</p>
               <Button size="sm" onClick={() => setOpenId(selected.id)}>

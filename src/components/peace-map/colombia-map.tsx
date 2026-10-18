@@ -3,7 +3,7 @@ import type { FeatureCollection } from "geojson";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { colombia } from "@/lib/colombia-geo";
-import { mapCategoryColor, mapExperiences } from "@/lib/map-data";
+import { mapCategoryColor, mapExperiences, mapRegions, regionOf } from "@/lib/map-data";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -12,6 +12,8 @@ const MIN_K = 1;
 const MAX_K = 7;
 const FOCUS_K = 2.5;
 const LABEL_MIN_K = 1.3;
+const REGION_FADE_K = 1.7;
+const REGION_MAX_K = 2.8;
 
 interface View {
   k: number;
@@ -87,6 +89,7 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
     const el = stageRef.current;
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const rect = el.getBoundingClientRect();
       zoomAt(event.deltaY < 0 ? 1.3 : 0.77, event.clientX - rect.left, event.clientY - rect.top);
@@ -123,6 +126,10 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
       points: mapExperiences.map((experience) => {
         const projected = projection([experience.lng, experience.lat]) ?? [0, 0];
         return { id: experience.id, bx: projected[0], by: projected[1] };
+      }),
+      regions: mapRegions.map((region) => {
+        const projected = projection([region.lng, region.lat]) ?? [0, 0];
+        return { key: region.key, bx: projected[0], by: projected[1] };
       }),
     };
   }, [size.w, size.h]);
@@ -181,7 +188,13 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
   const hoveredExperience = hovered
     ? mapExperiences.find((experience) => experience.id === hovered)
     : undefined;
+  const selectedExperience = mapExperiences.find((experience) => experience.id === selectedId);
+  const selectedRegion = selectedExperience ? regionOf(selectedExperience) : null;
   const showLabels = view.k >= LABEL_MIN_K;
+  const regionOpacity =
+    view.k <= REGION_FADE_K
+      ? 1
+      : Math.max(0, 1 - (view.k - REGION_FADE_K) / (REGION_MAX_K - REGION_FADE_K));
 
   return (
     <div
@@ -203,6 +216,25 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
           <path className="pmap-land" d={base.land} />
         </g>
       </svg>
+
+      {regionOpacity > 0.04 &&
+        base.regions.map((region) => {
+          const position = project(region.bx, region.by);
+          const activeRegion = region.key === selectedRegion;
+          return (
+            <span
+              key={`region-${region.key}`}
+              className={`pmap-region${activeRegion ? " is-active" : ""}`}
+              style={{
+                left: position.left,
+                top: position.top,
+                opacity: activeRegion ? 1 : regionOpacity,
+              }}
+            >
+              {region.key}
+            </span>
+          );
+        })}
 
       {mapExperiences.map((experience) => {
         const point = base.points.find((item) => item.id === experience.id);
@@ -252,7 +284,8 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
         <div className="pmap-tip" style={project(hoveredPoint.bx, hoveredPoint.by)}>
           <strong>{hoveredExperience.name}</strong>
           <span>
-            {hoveredExperience.city} · {hoveredExperience.department}
+            {hoveredExperience.city} · {hoveredExperience.department} ·{" "}
+            {regionOf(hoveredExperience)}
           </span>
         </div>
       )}
@@ -278,7 +311,8 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
       </div>
 
       <p className="pmap-hint">
-        Arrastra para explorar · Usa + / − para acercar · Toca un punto para ver su historia
+        Arrastra para explorar · Usa + / − o Ctrl + rueda para acercar · Toca un punto para ver su
+        historia
       </p>
     </div>
   );
