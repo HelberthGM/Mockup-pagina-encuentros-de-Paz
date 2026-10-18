@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowUpRight, MapPin, X } from "lucide-react";
 import bear from "@/assets/peace-bear.png";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,10 @@ import "./peace-map.css";
 export function ExperienceMap() {
   const [selectedId, setSelectedId] = useState<string | null>(mapExperiences[0]?.id ?? null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
 
   const selected = mapExperiences.find((experience) => experience.id === selectedId) ?? null;
   const open = mapExperiences.find((experience) => experience.id === openId) ?? null;
   const regions = new Set(mapExperiences.map((experience) => regionOf(experience))).size;
-
-  useEffect(() => {
-    if (!selectedId) return;
-    const item = listRef.current?.querySelector<HTMLElement>(`[data-id="${selectedId}"]`);
-    item?.scrollIntoView?.({ block: "nearest" });
-  }, [selectedId]);
 
   return (
     <section className="pmap" aria-label="Mapa de experiencias del encuentro">
@@ -47,29 +40,6 @@ export function ExperienceMap() {
           <div className="pmap-bear">
             <img src={bear} alt="" width="46" height="50" />
             <p>Arrastra, acércate y descubre una historia.</p>
-          </div>
-          <div className="pmap-list-head">
-            <span>Experiencias</span>
-            <span>{mapExperiences.length} puntos demo</span>
-          </div>
-          <div className="pmap-list" ref={listRef}>
-            {mapExperiences.map((experience) => (
-              <button
-                key={experience.id}
-                type="button"
-                data-id={experience.id}
-                className={`pmap-item ${experience.id === selectedId ? "is-active" : ""}`}
-                onClick={() => setSelectedId(experience.id)}
-              >
-                <span className={`pmap-dot pmap-c${mapCategoryColor(experience.category)}`} />
-                <span className="pmap-item-text">
-                  <strong>{experience.name}</strong>
-                  <span>
-                    {experience.city} · {experience.department}
-                  </span>
-                </span>
-              </button>
-            ))}
           </div>
           <p className="pmap-notice">{DEMO_MAP_NOTICE}</p>
         </div>

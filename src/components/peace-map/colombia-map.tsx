@@ -1,8 +1,9 @@
-import { geoMercator, geoPath } from "d3-geo";
+import { geoCentroid, geoMercator, geoPath } from "d3-geo";
 import type { FeatureCollection } from "geojson";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { colombia } from "@/lib/colombia-geo";
+import { colombiaDepartments } from "@/lib/colombia-departments-geo";
 import { mapCategoryColor, mapExperiences, mapRegions, regionOf } from "@/lib/map-data";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -14,6 +15,13 @@ const FOCUS_K = 2.5;
 const LABEL_MIN_K = 1.3;
 const REGION_FADE_K = 1.7;
 const REGION_MAX_K = 2.8;
+const DEPT_LINE_MIN_K = 1.45;
+const DEPT_LINE_MAX_K = 1.95;
+const DEPT_LABEL_MIN_K = 2.05;
+const DEPT_LABEL_MAX_K = 2.6;
+
+const fade = (k: number, min: number, max: number) =>
+  Math.max(0, Math.min(1, (k - min) / (max - min)));
 
 interface View {
   k: number;
@@ -29,7 +37,7 @@ interface Props {
 export function ColombiaMap({ selectedId, onSelect }: Props) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
-  const focusRef = useRef<string | null>(null);
+  const lastSelectionRef = useRef<string | null>(mapExperiences[0]?.id ?? null);
   const [size, setSize] = useState({ w: 960, h: 640 });
   const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
   const [hovered, setHovered] = useState<string | null>(null);
@@ -131,21 +139,29 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
         const projected = projection([region.lng, region.lat]) ?? [0, 0];
         return { key: region.key, bx: projected[0], by: projected[1] };
       }),
+      departments: colombiaDepartments.features.map((feature) => ({
+        name: feature.properties.name,
+        d: path(feature) ?? "",
+      })),
+      departmentLabels: colombiaDepartments.features
+        .map((feature) => {
+          const projected = projection(geoCentroid(feature));
+          if (!projected || !Number.isFinite(projected[0]) || !Number.isFinite(projected[1])) {
+            return null;
+          }
+          return { name: feature.properties.name, bx: projected[0], by: projected[1] };
+        })
+        .filter((item): item is { name: string; bx: number; by: number } => item !== null),
     };
   }, [size.w, size.h]);
 
   useIsomorphicLayoutEffect(() => {
-    if (!selectedId) {
-      focusRef.current = null;
-      return;
-    }
+    if (!selectedId || selectedId === lastSelectionRef.current) return;
+    lastSelectionRef.current = selectedId;
     const point = base.points.find((item) => item.id === selectedId);
     if (!point) return;
-    const key = `${selectedId}:${size.w}x${size.h}`;
-    if (focusRef.current === key) return;
-    focusRef.current = key;
     setView((current) => focusOn(point.bx, point.by, Math.max(current.k, FOCUS_K)));
-  }, [selectedId, base.points, focusOn, size.w, size.h]);
+  }, [selectedId, base.points, focusOn]);
 
   const project = (bx: number, by: number) => ({
     left: view.x + view.k * bx,
@@ -195,6 +211,8 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
     view.k <= REGION_FADE_K
       ? 1
       : Math.max(0, 1 - (view.k - REGION_FADE_K) / (REGION_MAX_K - REGION_FADE_K));
+  const deptLineOpacity = fade(view.k, DEPT_LINE_MIN_K, DEPT_LINE_MAX_K);
+  const deptLabelOpacity = fade(view.k, DEPT_LABEL_MIN_K, DEPT_LABEL_MAX_K);
 
   return (
     <div
@@ -213,7 +231,23 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
         aria-hidden="true"
       >
         <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
+          <defs>
+            <clipPath id="pmap-country-clip">
+              <path d={base.land} />
+            </clipPath>
+          </defs>
           <path className="pmap-land" d={base.land} />
+          {deptLineOpacity > 0.02 && (
+            <g
+              className="pmap-depts"
+              clipPath="url(#pmap-country-clip)"
+              style={{ opacity: deptLineOpacity }}
+            >
+              {base.departments.map((department) => (
+                <path key={department.name} d={department.d} />
+              ))}
+            </g>
+          )}
         </g>
       </svg>
 
@@ -232,6 +266,24 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
               }}
             >
               {region.key}
+            </span>
+          );
+        })}
+
+      {deptLabelOpacity > 0.03 &&
+        base.departmentLabels.map((department) => {
+          const position = project(department.bx, department.by);
+          return (
+            <span
+              key={`dept-${department.name}`}
+              className="pmap-dept-label"
+              style={{
+                left: position.left,
+                top: position.top,
+                opacity: deptLabelOpacity,
+              }}
+            >
+              {department.name}
             </span>
           );
         })}
@@ -293,26 +345,35 @@ export function ColombiaMap({ selectedId, onSelect }: Props) {
       <div className="pmap-controls">
         <button
           type="button"
+          className="pmap-zoom"
           aria-label="Acercar"
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={() => zoomAt(1.4, size.w / 2, size.h / 2)}
         >
           <Plus size={18} />
         </button>
         <button
           type="button"
+          className="pmap-zoom"
           aria-label="Alejar"
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={() => zoomAt(0.71, size.w / 2, size.h / 2)}
         >
           <Minus size={18} />
         </button>
-        <button type="button" aria-label="Volver a la experiencia seleccionada" onClick={reset}>
+        <button
+          type="button"
+          className="pmap-zoom"
+          aria-label="Volver a la experiencia seleccionada"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={reset}
+        >
           <Maximize2 size={17} />
         </button>
       </div>
 
       <p className="pmap-hint">
-        Arrastra para explorar · Usa + / − o Ctrl + rueda para acercar · Toca un punto para ver su
-        historia
+        Arrastra para explorar · Acerca con Ctrl + rueda para ver departamentos y ciudades
       </p>
     </div>
   );

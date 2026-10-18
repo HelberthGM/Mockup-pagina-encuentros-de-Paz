@@ -6,6 +6,7 @@
   --pmap-ocean-3: oklch(0.93 0.03 218);
   --pmap-land: oklch(0.94 0.055 150);
   --pmap-land-line: oklch(0.8 0.06 152);
+  --pmap-dept-line: oklch(0.7 0.05 155);
   --pmap-c0: oklch(0.55 0.13 155);
   --pmap-c1: oklch(0.72 0.15 62);
   --pmap-c2: oklch(0.55 0.11 245);
@@ -26,6 +27,7 @@
   display: flex;
   flex-direction: column;
   gap: 15px;
+  align-self: stretch;
   padding: 36px 34px 24px;
   background: var(--background);
   border-right: 1px solid var(--border);
@@ -150,84 +152,9 @@
   font-weight: 500;
   color: var(--foreground);
 }
-.pmap-list-head {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-.pmap-list {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin: 0 -9px;
-  padding: 2px 9px 6px;
-}
-.pmap-item {
-  display: flex;
-  gap: 11px;
-  align-items: flex-start;
-  width: 100%;
-  text-align: left;
-  padding: 11px 12px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--foreground);
-  transition:
-    background 0.14s ease,
-    border-color 0.14s ease,
-    transform 0.14s ease,
-    box-shadow 0.14s ease;
-}
-.pmap-item:hover {
-  background: var(--secondary);
-  transform: translateX(2px);
-}
-.pmap-item.is-active {
-  border-color: var(--border);
-  background: var(--secondary);
-  box-shadow: 0 8px 20px oklch(0.3 0.03 155 / 0.09);
-}
-.pmap-item:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-.pmap-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  margin-top: 4px;
-  flex: none;
-  background: var(--marker, var(--primary));
-  box-shadow: 0 0 0 3px oklch(1 0 0 / 0.7);
-  transition: box-shadow 0.14s ease;
-}
-.pmap-item.is-active .pmap-dot {
-  box-shadow: 0 0 0 5px oklch(0.43 0.11 157 / 0.18);
-}
-.pmap-item-text {
-  min-width: 0;
-}
-.pmap-item-text strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--foreground);
-}
-.pmap-item-text span {
-  font-size: 11px;
-  color: var(--muted-foreground);
-}
 .pmap-notice {
   position: relative;
-  margin: 0;
+  margin: auto 0 0;
   font-size: 11px;
   line-height: 1.5;
   color: var(--muted-foreground);
@@ -369,6 +296,32 @@
 }
 .pmap-region.is-active {
   color: var(--primary);
+}
+.pmap-depts {
+  fill: none;
+  stroke: var(--pmap-dept-line);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.pmap-depts path {
+  vector-effect: non-scaling-stroke;
+}
+.pmap-dept-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  text-shadow:
+    0 1px 0 oklch(1 0 0 / 0.75),
+    0 0 4px oklch(1 0 0 / 0.85),
+    0 0 6px oklch(1 0 0 / 0.7);
 }
 .pmap-tip {
   position: absolute;
